@@ -2,97 +2,106 @@
 
 A modern, beautifully designed web application that parses a visitor's HTTP connection details and displays their exact IP address, browser, operating system, and device. 
 
-This project is built to run **100% free** on the Google Cloud Run "Always Free" tier.
+This project is built to run **100% free** on the Google Cloud Run "Always Free" tier, powered by an enterprise-grade GitHub Actions CI/CD pipeline and strict Infrastructure as Code.
 
 ## Project Structure
 
-This directory contains everything needed to run and deploy the application:
+This directory contains everything needed to run, test, and deploy the application:
 
+### Application Code
 - `main.py`: The core Python Flask application logic.
-- `templates/index.html`: The HTML/CSS frontend featuring a premium Glassmorphism design and animated mesh gradient.
-- `requirements.txt`: Python dependencies (`Flask`, `user-agents`, `gunicorn`).
-- `Dockerfile`: Instructions for containerizing the application using a lightweight Python image.
-- `main.tf`: The Infrastructure as Code (Terraform) configuration that defines the Google Cloud resources.
+- `templates/index.html`: The frontend featuring a premium Glassmorphism design and animated mesh gradient.
+- `requirements.txt`: Production dependencies (`Flask`, `user-agents`, `gunicorn`).
+
+### Testing & Quality (Application Hardening)
+- `tests/test_main.py`: Automated `pytest` unit tests to verify the routing and parsing logic.
+- `requirements-dev.txt`: Development dependencies (`pytest`, `black`).
+- `.gitignore`: Ensures environments and secrets are never accidentally pushed to GitHub.
+
+### Infrastructure & Deployment
+- `main.tf`: Strict Terraform configuration defining Google Cloud resources, including the Artifact Registry.
+- `Dockerfile`: Instructions for containerizing the application.
+- `.github/workflows/deploy.yml`: The CI/CD pipeline that automatically tests, lints, builds, and deploys the app on every push to the `main` branch.
 
 ## Zero-Cost Infrastructure Architecture
 
 This project is meticulously configured to stay within the Google Cloud "Always Free" tier limits, resulting in a **$0.00 monthly bill**.
 
-1. **Google Cloud Run (Compute)**: Runs the application container. The Terraform configuration strictly enforces a limit of **1 maximum instance** (`max_instance_count = 1`) and minimal memory (`256Mi`). This guarantees it will never exceed the free allocation of 2 million requests and 180,000 vCPU-seconds per month, even under heavy traffic.
-2. **Google Cloud Storage (Remote State)**: The Terraform state is securely stored in a GCS bucket (`tf-state-gen-lang-client-0111574187`). This uses less than 1MB of the 5GB free monthly allowance.
-3. **Artifact Registry**: Stores the compiled Docker image (~150MB), sitting comfortably under the 500MB free tier limit.
+1. **Google Cloud Run**: Runs the application container. The Terraform configuration enforces a limit of **1 maximum instance** (`max_instance_count = 1`) and minimal memory (`256Mi`). 
+2. **Google Artifact Registry**: The `main.tf` file creates a dedicated Docker repository (`my-free-site-repo`). Since the container uses a lightweight Alpine/Slim image (~150MB), it easily fits in the 500MB free allowance.
+3. **Google Cloud Storage**: The remote Terraform state is securely stored in a GCS bucket, taking up less than 1MB of the 5GB free allowance.
 
-## Running Locally
+## Local Development
 
 1. Create a Python virtual environment and activate it:
    ```bash
    python -m venv venv
    source venv/bin/activate
    ```
-2. Install the requirements:
+2. Install all dependencies:
    ```bash
    pip install -r requirements.txt
+   pip install -r requirements-dev.txt
    ```
-3. Run the Flask development server:
+3. **Run the Server:**
    ```bash
    python main.py
    ```
-4. Open your browser and navigate to `http://localhost:8080`.
+4. **Run the Tests:**
+   ```bash
+   pytest tests/
+   ```
+5. **Format your Code:**
+   ```bash
+   black .
+   ```
 
-## Cloud Deployment Guide
+## Deployment Workflow (CI/CD)
 
-This project uses a hybrid deployment model. If you have just cloned this repository, follow the **First-Time Setup** instructions.
+This project uses a fully automated **GitHub Actions CI/CD pipeline**.
 
 ### 1. First-Time Setup (Deploying from scratch)
+If you just cloned this repository and are deploying to a brand new Google Cloud project, you must set up the foundation *before* the CI/CD pipeline can run.
 
-If you are deploying this to a new Google Cloud project, you must set up the state bucket and push the initial code before running Terraform.
-
-**Step A: Authenticate and Set Project**
+**Step A: Authenticate locally**
 ```bash
 gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
 gcloud auth application-default login
 ```
 
-**Step B: Create the Terraform State Bucket**
-Terraform needs a remote bucket to securely store the state. Create it using the CLI (replace `YOUR_PROJECT_ID` with your actual project ID):
+**Step B: Create the Remote State Bucket**
+Terraform needs a secure place to store its state. Create a bucket (and update `main.tf` to match its name):
 ```bash
 gcloud storage buckets create gs://tf-state-YOUR_PROJECT_ID --location=us-central1
 ```
-*Note: Update `bucket = "..."` in the `main.tf` file to match this new bucket name, and update the `project = "..."` field as well.*
 
-**Step C: Initial Code Deployment**
-Before Terraform can manage the Cloud Run service, you need to deploy the initial code so that the Docker image exists in the Artifact Registry:
-```bash
-gcloud run deploy my-free-site --source . --region us-central1 --allow-unauthenticated
-```
-
-**Step D: Initialize and Apply Terraform**
-Now that the code is deployed, lock down the infrastructure settings (like the 1-instance limit) using Terraform:
+**Step C: Create the Artifact Registry**
+The CI/CD pipeline needs a place to push your Docker image. Run Terraform *only* for the registry first to solve the "chicken and egg" problem:
 ```bash
 terraform init
-terraform apply
+terraform apply -target=google_artifact_registry_repository.my_repo
 ```
 
----
+**Step D: Add Secrets to GitHub**
+Create a Google Cloud Service Account with the `Editor` role, generate a JSON key, and add the entire JSON file contents as a **Repository Secret** in GitHub named exactly `GCP_CREDENTIALS`.
 
-### 2. Routine Updates (CI/CD)
+Once this foundation is set, proceed to the daily workflow below!
 
-The old manual CLI deployments have been replaced by a fully automated **GitHub Actions CI/CD pipeline**.
-
-**How to update your code:**
-1. Make your changes locally.
-2. Commit and push to the `main` branch:
+### 2. Daily Development (Automated CI/CD)
+When you want to update the app, you do not need to use the `gcloud` or `terraform` CLI tools anymore.
+1. Make your code changes locally.
+2. Commit and push to GitHub:
    ```bash
    git add .
-   git commit -m "Your feature description"
+   git commit -m "Your description"
    git push origin main
    ```
-3. GitHub Actions will automatically take over! It will:
-   - Run `pytest` to check for bugs and `black` to check code formatting.
+3. GitHub Actions takes over! It will automatically:
+   - Run `black` to check code formatting.
+   - Run `pytest` to ensure your code works.
    - Build a new Docker container tagged with your exact git commit hash.
-   - Upload it to the Google Artifact Registry.
-   - Run `terraform apply` to instantly push the new image to Google Cloud Run safely.
+   - Upload the container to the Google Artifact Registry.
+   - Run `terraform apply` to push the new image to Cloud Run.
 
-**How to update infrastructure:**
-If you need to change memory limits, environment variables, or scaling settings, simply edit `main.tf` and push it to the `main` branch. The CI/CD pipeline will automatically detect the changes and apply them during the deploy step.
+### 2. Infrastructure Changes
+If you ever want to increase the memory limit or add an environment variable, simply edit `main.tf` and push it to GitHub. The CI/CD pipeline will automatically detect the changes and apply them to Google Cloud safely.
