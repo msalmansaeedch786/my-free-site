@@ -27,6 +27,8 @@ This directory contains everything needed to run, test, and deploy the applicati
 
 This project is meticulously configured to stay within the Google Cloud "Always Free" tier limits, resulting in a **$0.00 monthly bill**.
 
+![System Architecture](docs/architecture.drawio.png)
+
 1. **Google Cloud Run**: Runs the application container. The Terraform configuration enforces a limit of **1 maximum instance** (`max_instance_count = 1`) and minimal memory (`256Mi`). 
 2. **Google Artifact Registry**: The `main.tf` file creates a dedicated Docker repository (`my-free-site-repo`). Since the container uses a lightweight Alpine/Slim image (~150MB), it easily fits in the 500MB free allowance.
 3. **Google Cloud Storage**: The remote Terraform state is securely stored in a GCS bucket, taking up less than 1MB of the 5GB free allowance.

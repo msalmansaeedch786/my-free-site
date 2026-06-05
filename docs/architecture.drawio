@@ -1,0 +1,70 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="architecture" name="System Architecture">
+    <mxGraphModel dx="1000" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Group: GitHub -->
+        <mxCell id="github_group" value="GitHub" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="220" height="280" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="github_repo" value="Source Code (main)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="github_group">
+          <mxGeometry x="50" y="60" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="github_actions" value="GitHub Actions&#10;(CI/CD Pipeline)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="github_group">
+          <mxGeometry x="50" y="180" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edge inside GitHub -->
+        <mxCell id="edge_push" value="Git Push" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="github_group" source="github_repo" target="github_actions">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Group: Google Cloud -->
+        <mxCell id="gcp_group" value="Google Cloud Platform (Always Free Tier)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="360" y="80" width="300" height="280" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="gcp_registry" value="Artifact Registry&#10;(Docker Image)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="gcp_group">
+          <mxGeometry x="40" y="60" width="90" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="gcp_storage" value="Cloud Storage&#10;(Terraform State)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="gcp_group">
+          <mxGeometry x="170" y="60" width="90" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="gcp_run" value="Cloud Run&#10;(Web Server)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="gcp_group">
+          <mxGeometry x="90" y="180" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges from Actions to GCP -->
+        <mxCell id="edge_build" value="1. Build &amp; Push" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="github_actions" target="gcp_registry">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="290" />
+              <mxPoint x="300" y="180" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="edge_deploy" value="2. Terraform Apply" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="github_actions" target="gcp_run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Users -->
+        <mxCell id="users" value="Internet Users" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="720" y="170" width="120" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Edge from Users to Cloud Run -->
+        <mxCell id="edge_traffic" value="HTTPS" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="users" target="gcp_run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
