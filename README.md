@@ -33,6 +33,19 @@ This project is meticulously configured to stay within the Google Cloud "Always 
 
 ## Local Development
 
+### Option A: Using Docker (Recommended)
+You can run the exact same container locally that runs in Google Cloud:
+1. Build the image:
+   ```bash
+   docker build -t my-free-site .
+   ```
+2. Run the container:
+   ```bash
+   docker run -e PORT=8080 -p 8080:8080 my-free-site
+   ```
+3. Visit `http://localhost:8080` in your browser.
+
+### Option B: Native Python
 1. Create a Python virtual environment and activate it:
    ```bash
    python -m venv venv
@@ -63,6 +76,8 @@ This project uses a fully automated **GitHub Actions CI/CD pipeline**.
 ### 1. First-Time Setup (Deploying from scratch)
 If you just cloned this repository and are deploying to a brand new Google Cloud project, you must set up the foundation *before* the CI/CD pipeline can run.
 
+**Prerequisites:** Ensure you have installed the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install), [Terraform](https://developer.hashicorp.com/terraform/downloads), and [Docker](https://docs.docker.com/get-docker/) before proceeding.
+
 **Step A: Authenticate locally**
 ```bash
 gcloud auth login
@@ -83,7 +98,21 @@ terraform apply -target=google_artifact_registry_repository.my_repo
 ```
 
 **Step D: Add Secrets to GitHub**
-Create a Google Cloud Service Account with the `Editor` role, generate a JSON key, and add the entire JSON file contents as a **Repository Secret** in GitHub named exactly `GCP_CREDENTIALS`.
+The CI/CD pipeline needs permission to deploy to your Google Cloud project. Run these exact commands to generate a secure key:
+```bash
+# 1. Create a Service Account
+gcloud iam service-accounts create github-actions-sa --display-name="GitHub Actions"
+
+# 2. Grant it the Editor role (Replace YOUR_PROJECT_ID below)
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:github-actions-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/editor"
+
+# 3. Download the JSON key file
+gcloud iam service-accounts keys create sa-key.json \
+    --iam-account=github-actions-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com
+```
+Finally, copy the entire contents of `sa-key.json` and add it as a **Repository Secret** in GitHub named exactly `GCP_CREDENTIALS`. *(Delete the `sa-key.json` file from your computer immediately after!)*
 
 Once this foundation is set, proceed to the daily workflow below!
 
