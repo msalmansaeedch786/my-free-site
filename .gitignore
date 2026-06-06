@@ -4,8 +4,8 @@ __pycache__/
 .pytest_cache/
 .coverage
 .terraform/
-.terraform.lock.hcl
 terraform.tfstate
 terraform.tfstate.backup
 .DS_Store
 sa-key.json
+.env
